@@ -45,6 +45,7 @@ const Chat = () => {
   // Handle typing
   const handleTyping = (e) => {
     const text = e.target.value;
+    console.log(text,"text text text text")
     setNewMessage(text);
 
     // Send typing indicator

@@ -114,7 +114,9 @@ export const useCommentPost = () => {
       }
 
       setLoadingPostId(postId);
-      const response = await postService.commentPost(postId, { content });
+      // Backend expects just the content string via postService.commentPost(postId, content)
+      // which then creates the payload object internally
+      const response = await postService.commentPost(postId, content);
       toast.success("Comment added!");
       return response.comment || response;
     } catch (err) {

@@ -145,12 +145,12 @@ const Login = () => {
           </Link>
         </p>
 
-        <div className="mt-6 pt-6 border-t border-gray-200">
+        {/* <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-500 text-center mb-2">Demo Login (if available):</p>
           <p className="text-xs text-gray-600 text-center">
             📧 demo@example.com <br /> 🔐 password123
           </p>
-        </div>
+        </div> */}
       </div>
     </div>
   );
