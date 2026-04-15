@@ -142,11 +142,22 @@ export const useChat = (chatId) => {
       const handleMessage = (data) => {
         if (data?.chatId === chatId && data?.message) {
           setMessages((prev) => {
+            // 🔥 STEP 1: Replace optimistic message using tempId
+            if (data.tempId) {
+              const index = prev.findIndex((m) => m._id === data.tempId);
+              if (index !== -1) {
+                const updated = [...prev];
+                updated[index] = data.message; // replace optimistic
+                return updated;
+              }
+            }
+
+            // 🔥 STEP 2: Prevent duplicate real messages
             if (prev.some((m) => m._id === data.message._id)) {
-              console.log("[useChat] Duplicate message prevented:", data.message._id);
               return prev;
             }
-            console.log("[useChat] Message received:", data.message._id);
+
+            // 🔥 STEP 3: Add new message (for receiver)
             return [...prev, data.message];
           });
         }
@@ -225,6 +236,7 @@ export const useChat = (chatId) => {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       const optimisticMessage = {
         _id: `temp-${Date.now()}`,
+        chatId, // ✅ ADD THIS
         sender: user,
         content,
         createdAt: new Date(),
@@ -239,27 +251,43 @@ export const useChat = (chatId) => {
 
       try {
         // Try to emit the socket send immediately for instant delivery
+        // if (socketService.isReady()) {
+        //   // socketService.sendMessage(chatId, content);
+        //   socketService.sendMessage(chatId, {
+        //     chatId,
+        //     content,
+        //     tempId: optimisticMessage._id, // 🔥 IMPORTANT
+        //   });
+        // }
+
+        // Persist via API so the message is stored reliably
+        // const response = await chatService.sendMessage(chatId, { content });
+        // const realMessage = response.message || response;
+
+        // // ✅ FIX: avoid double replace if socket already handled it
+        // setMessages((prev) => {
+        //   // If already replaced via socket, skip update
+        //   if (prev.some((msg) => msg._id === realMessage._id)) {
+        //     return prev;
+        //   }
+
+        //   return prev.map((msg) =>
+        //     msg._id === optimisticMessage._id ? realMessage : msg
+        //   );
+        // });
+        // ONLY socket handles sending
         if (socketService.isReady()) {
-          // socketService.sendMessage(chatId, content);
           socketService.sendMessage(chatId, {
             chatId,
             content,
-            tempId: optimisticMessage._id, // 🔥 IMPORTANT
+            tempId: optimisticMessage._id,
           });
+        } else {
+          throw new Error("Socket not connected");
         }
-
-        // Persist via API so the message is stored reliably
-        const response = await chatService.sendMessage(chatId, { content });
-        const realMessage = response.message || response;
-
-        // Replace optimistic message with real message
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg._id === optimisticMessage._id ? realMessage : msg
-          )
-        );
         
-        return realMessage;
+        // return realMessage;
+        return optimisticMessage;
       } catch (err) {
         // Remove optimistic message on error
         setMessages((prev) =>
